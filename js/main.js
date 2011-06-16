@@ -1,4 +1,5 @@
 Ext.onReady(function() {
+
 	document.getElementById('username').value = readCookie('username');
 	Ext.fly('username').on('blur', function(e, t) {
 		createCookie('username', document.getElementById('username').value, 30);
@@ -19,6 +20,22 @@ Ext.onReady(function() {
 		}
 	});
 
+	var currentProject = null;
+
+		// if path is given in URL, select the record and render.
+	store.on('load', function(store, records) {
+		var initialPath = null;
+		if (window.location.hash) {
+			initialPath = window.location.hash.substr(1, window.location.hash.length - 1);
+		}
+		Ext.each(records, function(record) {
+			if (record.data && record.data.path === initialPath) {
+				currentProject = record.data;
+				render();
+				return false;
+			}
+		});
+	});
 	var grid = new Ext.grid.GridPanel({
 		store: store,
 		columns: [
@@ -35,14 +52,16 @@ Ext.onReady(function() {
 		width: 650,
 		height: 300
 	});
-	grid.on('rowclick', function(grid, rowIndex, e){
+
+
+	var render = function render(project) {
+		if (currentProject === null) return;
 		document.getElementById('output').innerHTML = '';
-		var project = grid.store.getAt(rowIndex).data;
+
 		var username = document.getElementById('username').value;
 		if (username.length < 1) {
-			alert('Please enter username first!');
+			username = "YOUR-USERNAME-HERE";
 			document.getElementById('username').focus();
-			return;
 		}
 		var templateLines = [
 			'git clone --recursive git://git.typo3.org/{projectPath} {projectName}',
@@ -51,7 +70,7 @@ Ext.onReady(function() {
 			'git config remote.origin.pushurl ssh://{username}@review.typo3.org:29418/{projectPath}',
 			'git config remote.origin.push HEAD:refs/for/master'
 		];
-		if (project.type == 'Distribution' || project.type == 'Application') {
+		if (currentProject.type == 'Distribution' || currentProject.type == 'Application') {
 			templateLines.push(
 				'git submodule foreach \'scp -p -P 29418 {username}@review.typo3.org:hooks/commit-msg .git/hooks/\'',
 				'git submodule foreach \'git config remote.origin.pushurl ssh://review.typo3.org:29418/FLOW3/Packages/`basename $path`.git\'',
@@ -66,9 +85,16 @@ Ext.onReady(function() {
 				disableFormats: true
 			}
 		);
-		template.append('output', {projectName: project.name, projectPath: project.path, username: username});
+		template.append('output', {projectName: currentProject.name, projectPath: currentProject.path, username: username});
+		Ext.fly('link').update('link to this page: ' + window.location.href.substr(0, window.location.href.length - window.location.hash.length) + '#' + currentProject.path);
+	}
+	grid.on('rowclick', function(grid, rowIndex, e) {
+		currentProject = grid.store.getAt(rowIndex).data;
+		render();
 	});
 
+	Ext.get('username').on('keyup', render);
+	Ext.get('username').on('change', render);
 	store.load();
 });
 

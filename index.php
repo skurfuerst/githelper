@@ -11,11 +11,12 @@
 <body>
 <h1>Git Helper</h1>
 <h2>1. Enter your typo3.org Username</h2>
-<input type="text" name="username" id="username" />
+<input type="text" name="username" id="username" placeholder="Your Username" />
 <h2>2. Select Git project</h2>
 <div id="projectGrid"></div>
 <h2>3. Copy &amp; paste Git commands (line by line):</h2>
 <textarea name="output" id="output" rows="40" cols="40" wrap="off"></textarea>
+<div id="link"></div>
 </body>
 </html>
 
